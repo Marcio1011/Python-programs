@@ -1,11 +1,13 @@
 import functions                          # Imports custom functions used for reading and writing todo items
 import FreeSimpleGUI as sg                # Imports the GUI library under a shorter alias for convenience
+import time
+
+sg.theme("Black")
 
 # --- GUI ELEMENT DEFINITIONS ---
-
+clock = sg.Text('', key='clock')
 label = sg.Text("Type in a To-Do")        # Creates a text label to instruct the user what to enter
-input_box = sg.InputText(tooltip="Enter todo", key="todo")
-# Creates an input field where the user types a todo item. The 'key' identifies this field in events.
+input_box = sg.InputText(tooltip="Enter todo", key="todo") # Creates an input field where the user types a todo item. The 'key' identifies this field in events.
 
 add_button = sg.Button("Add")             # Button that adds a new todo item to the list
 
@@ -24,7 +26,7 @@ exit_button = sg.Button("Exit")           # Button that closes the application
 
 window = sg.Window(
     'My To-Do App',                       # Title of the application window
-    layout=[                              # GUI layout: each inner list represents a row
+    layout=[[clock],                             # GUI layout: each inner list represents a row
         [label],
         [input_box, add_button],
         [list_box, edit_button, complete_button],
@@ -36,10 +38,8 @@ window = sg.Window(
 # --- EVENT LOOP ---
 
 while True:
-    event, values = window.read()         # Waits for any user interaction and returns the event and input values
-    print(1, event)                       # Debug output: prints which event occurred
-    print(2, values)                      # Debug output: prints all current GUI input values
-    print(3, values['todos'])             # Debug: prints currently selected todo item(s)
+    event, values = window.read(timeout=200)         # Waits for any user interaction and returns the event and input values
+    window["clock"].update(value=time.strftime("%b %d, %Y %H:%M:%S"))
 
     match event:                          # Pattern matching to handle different user actions
 
@@ -51,22 +51,28 @@ while True:
             window['todos'].update(values=todos)  # Refreshes the listbox display
 
         case "Edit":                      # Triggered when the Edit button is clicked
-            todo_to_edit = values['todos'][0]   # Gets the currently selected todo item
-            new_todo = values['todo']          # Gets the new replacement text from the input field
+            try:
+                todo_to_edit = values['todos'][0]   # Gets the currently selected todo item
+                new_todo = values['todo']          # Gets the new replacement text from the input field
 
-            todos = functions.get_todos()      # Loads the current list of todos
-            index = todos.index(todo_to_edit)  # Finds the position of the selected item in the list
-            todos[index] = new_todo            # Replaces the old todo with the new text
-            functions.write_todos(todos)       # Saves the updated list
-            window['todos'].update(values=todos)  # Updates the listbox display
+                todos = functions.get_todos()      # Loads the current list of todos
+                index = todos.index(todo_to_edit)  # Finds the position of the selected item in the list
+                todos[index] = new_todo            # Replaces the old todo with the new text
+                functions.write_todos(todos)       # Saves the updated list
+                window['todos'].update(values=todos)  # Updates the listbox display
+            except IndexError:
+                sg.popup("Please select an item first.", font=("Helvetica", 20))
 
         case "Complete":                  # Triggered when the Complete button is clicked
-            todo_to_complete = values['todos'][0]  # Gets the selected todo item
-            todos = functions.get_todos()         # Loads current todos
-            todos.remove(todo_to_complete)        # Removes the selected item from the list
-            functions.write_todos(todos)          # Saves the updated list
-            window['todos'].update(values=todos)  # Updates the listbox
-            window['todo'].update(value='')       # Clears the input field after completing the item
+            try:
+                todo_to_complete = values['todos'][0]  # Gets the selected todo item
+                todos = functions.get_todos()         # Loads current todos
+                todos.remove(todo_to_complete)        # Removes the selected item from the list
+                functions.write_todos(todos)          # Saves the updated list
+                window['todos'].update(values=todos)  # Updates the listbox
+                window['todo'].update(value='')       # Clears the input field after completing the item
+            except IndexError:
+                sg.popup("Please select an item first.", font=("Helvetica", 20))
 
         case "Exit":                      # Triggered when the Exit button is clicked
             break                         # Breaks the loop and exits the program
